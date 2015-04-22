@@ -21,7 +21,7 @@ public class Server {
 		final ServerSocket listener = new ServerSocket(9090);
 		System.out.println("Starting server");
 
-		connect(listener);
+		connect(listener);//test
 	}
 
 	private static void connect(ServerSocket listener) throws IOException {
