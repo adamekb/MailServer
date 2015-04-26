@@ -21,21 +21,18 @@ public class Server {
 		final ServerSocket listener = new ServerSocket(9090);
 		System.out.println("Starting server");
 
-		connect(listener);//test
+		connect(listener);
 	}
 
-	private static void connect(ServerSocket listener) throws IOException {
+	private static void connect(final ServerSocket listener) throws IOException {
 
-		Sockets sockets = new Sockets();
-		sockets.setClient(listener.accept());
+		Socket socket = listener.accept();
 		System.out.println("Connection accepted");
-		
-		final ServerSocket temp = listener;
 		
 		Thread thread = new Thread(){
 			public void run(){
 				try {
-					connect(temp);
+					connect(listener);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -43,55 +40,45 @@ public class Server {
 		};
 		thread.start();
 
-		InputStreamReader reader = new InputStreamReader(sockets.client.getInputStream());
+		InputStreamReader reader = new InputStreamReader(socket.getInputStream());
 		BufferedReader input = new BufferedReader(reader);
 
-		parseInput(input, sockets);
+		parseInput(input, socket);
 
-		closeSockets(sockets);
+		socket.close();
 	}
 
-	private static void closeSockets(Sockets sockets) {
-
-		try {
-			sockets.client.close();
-			sockets.server.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private static void parseInput (BufferedReader input, Sockets sockets) throws IOException {
+	private static void parseInput (BufferedReader input, Socket socket) throws IOException {
 
 		String word0 = input.readLine();
 		switch (word0) {
 		case "login": 
-			validateLogin(input, sockets);
+			validateLogin(input, socket);
 			break;
 		case "sendMail": 
-			handleMail(input, sockets);
-			getWriter(sockets).println("mailSent\n");
+			handleMail(input, socket);
+			getWriter(socket).println("mailSent\n");
 			break;
 		}
 	}
 
-	private static void handleMail(BufferedReader input, Sockets sockets) throws IOException {
+	private static void handleMail(BufferedReader input, Socket socket) throws IOException {
 		String to = input.readLine();
 		int i = 0;
 		while(i < users.size()) {
 			if (users.get(i).getUserName().equals(to)) {
-				Mail mail = new Mail("FIXA", input.readLine(), input.readLine());
+				Mail mail = new Mail("FIXA", "!!!", input.readLine(), input.readLine());
 				users.get(i).addMail(mail);
 				break;
 			}
 			i++;
 			if (i == users.size()) {
-				accessDenied("user does not exist", sockets);
+				accessDenied("user does not exist", socket);
 			}
 		}
 	}
 
-	private static void validateLogin(BufferedReader input, Sockets sockets) throws IOException {
+	private static void validateLogin(BufferedReader input, Socket socket) throws IOException {
 
 		String userName = input.readLine();
 		String password = input.readLine();
@@ -100,47 +87,43 @@ public class Server {
 		while(i < users.size()) {
 			if (users.get(i).getUserName().equals(userName)) {
 				if (users.get(i).getPassword().equals(password)) {
-					grantAccess(sockets);
+					grantAccess(socket, userName);
 					break;
 				} else {
-					accessDenied("wrong password", sockets);
+					accessDenied("wrong password", socket);
 					break;
 				}
 			}
 			i++;
 			if (i == users.size()) {
-				accessDenied("user does not exist", sockets);
+				accessDenied("user does not exist", socket);
 			}
 		}
 	}
 
-	private static void accessDenied(String string, Sockets sockets) {
+	private static void accessDenied(String string, Socket socket) {
 
 		switch (string) {
 		case "wrong password": 
-			getWriter(sockets).println("wrongPwd\n");
+			getWriter(socket).println("wrongPwd\n");
 			break;
 		case "user does not exist": 
-			getWriter(sockets).println("notExist\n");
+			getWriter(socket).println("notExist\n");
 			break;
 		}
 	}
 
-	private static void grantAccess(Sockets sockets) {
-		getWriter(sockets).println("success\n");
+	private static void grantAccess(Socket socket, String userName) {
+		getWriter(socket).println("success\n" + userName);
 	}
 
 
 
-	private static PrintWriter getWriter(Sockets sockets) {
-
-		String clientIp = sockets.client.getInetAddress().toString();
-		clientIp = clientIp.substring(1); //removing initial backslash
-		System.out.println("Client ip: " + clientIp);
+	private static PrintWriter getWriter(Socket socket) {
+		
 		PrintWriter writer = null;
 		try {
-			sockets.setServer(new Socket(clientIp, 8080));
-			writer = new PrintWriter(sockets.server.getOutputStream(), true);
+			writer = new PrintWriter(socket.getOutputStream(), true);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
