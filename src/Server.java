@@ -1,5 +1,8 @@
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -20,7 +23,7 @@ public class Server {
 
 		final ServerSocket listener = new ServerSocket(9090);
 		System.out.println("Starting server");
-
+		loadMails();
 		connect(listener);
 	}
 
@@ -64,11 +67,17 @@ public class Server {
 
 	private static void handleMail(BufferedReader input, Socket socket) throws IOException {
 		String to = input.readLine();
+		String from = input.readLine();
+		String header = input.readLine();
+		String text = input.readLine();
+		String date = input.readLine();
+		Mail mail = new Mail(to, from, header, text, date);
+		storeMail(mail);
 		int i = 0;
 		while(i < users.size()) {
 			if (users.get(i).getUserName().equals(to)) {
-				Mail mail = new Mail("FIXA", "!!!", input.readLine(), input.readLine());
-				users.get(i).addMail(mail);
+				users.get(i).inboxAdd(mail);
+				users.get(getUserIndex(from)).sentAdd(mail);
 				break;
 			}
 			i++;
@@ -76,6 +85,29 @@ public class Server {
 				accessDenied("user does not exist", socket);
 			}
 		}
+	}
+
+	private static void storeMail(Mail mail) throws IOException {
+		FileWriter writer = new FileWriter("mail.txt", true);
+		writer.write(mail.to + "\n" + mail.from + "\n" + mail.topic + "\n" + mail.text + "\n" + mail.date + "\n");
+		writer.close();
+	}
+	
+	private static void loadMails() throws IOException {
+		BufferedReader reader = new BufferedReader(new FileReader("mail.txt"));
+		String line = null;
+		while ((line = reader.readLine()) != null) {
+				String to = line;
+				String from = reader.readLine();
+				String header = reader.readLine();
+				String text = reader.readLine();
+				String date = reader.readLine();
+				Mail mail = new Mail(to, from, header, text, date);
+				
+				users.get(getUserIndex(to)).inboxAdd(mail);
+				users.get(getUserIndex(from)).sentAdd(mail);
+		}
+		reader.close();
 	}
 
 	private static void validateLogin(BufferedReader input, Socket socket) throws IOException {
@@ -115,9 +147,33 @@ public class Server {
 
 	private static void grantAccess(Socket socket, String userName) {
 		getWriter(socket).println("success\n" + userName);
+		int index = getUserIndex(userName);
+		ArrayList<Mail> sent = users.get(index).getSent();
+		ArrayList<Mail> inbox = users.get(index).getInbox();
+		
+		for (Mail i : sent) {
+			getWriter(socket).println("sentMail\n" + i.to + "\n" + i.from + "\n" + i.topic + "\n" + i.text + "\n" + i.date + "\n");
+		}
+		
+		for (Mail i : inbox) {
+			getWriter(socket).println("inboxMail\n" + i.to + "\n" + i.from + "\n" + i.topic + "\n" + i.text + "\n" + i.date + "\n");
+		}
+		
+		getWriter(socket).println("done");
 	}
 
-
+	private static int getUserIndex(String userName) {
+		int result = -1;
+		int i = 0;
+		while (i < users.size()) {
+			if (users.get(i).getUserName().equals(userName)) {
+				result = i;
+				break;
+			}
+			i++;
+		}
+		return result;
+	}
 
 	private static PrintWriter getWriter(Socket socket) {
 		
@@ -128,11 +184,5 @@ public class Server {
 			e.printStackTrace();
 		}
 		return writer;
-	}
-
-	public static void closeServer (ServerSocket listener) throws IOException {
-
-		listener.close();
-		System.out.println("Server closed");
 	}
 }
