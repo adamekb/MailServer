@@ -13,6 +13,8 @@ import java.util.ArrayList;
 public class Server {
 
 	private static ArrayList<User> users = new ArrayList<User>();
+	private static FileWriter writer;
+	
 
 	public static void main(String[] args) throws IOException {
 
@@ -22,6 +24,7 @@ public class Server {
 		users.add(runar);
 
 		final ServerSocket listener = new ServerSocket(9090);
+		writer = new FileWriter("mail.txt", true);
 		System.out.println("Starting server");
 		loadMails();
 		connect(listener);
@@ -88,7 +91,6 @@ public class Server {
 	}
 
 	private static void storeMail(Mail mail) throws IOException {
-		FileWriter writer = new FileWriter("mail.txt", true);
 		writer.write(mail.to + "\n" + mail.from + "\n" + mail.topic + "\n" + mail.text + "\n" + mail.date + "\n");
 		writer.close();
 	}
