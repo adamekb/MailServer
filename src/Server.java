@@ -1,6 +1,5 @@
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -23,8 +22,8 @@ public class Server {
 		users.add(runar);
 
 		final ServerSocket listener = new ServerSocket(9090);
-		System.out.println("Starting server");
 		writer = new FileWriter("mail.txt", true);
+		System.out.println("Starting server");
 		loadMails();
 		connect(listener);
 	}
