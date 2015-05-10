@@ -1,23 +1,30 @@
+import java.security.Key;
 import java.util.ArrayList;
 
 
 public class User {
 	private String userName;
-	private String password;
+	private String hash;
+	private Key publicKey;
 	private ArrayList<Mail> inbox = new ArrayList<Mail>();
 	private ArrayList<Mail> sent = new ArrayList<Mail>();
 	
-	public User (String userName, String password) {
+	public User (String userName, String hash, Key publicKey) {
+		this.publicKey = publicKey;
 		this.userName = userName;
-		this.password = password;
+		this.hash = hash;
 	}
 	
 	public String getUserName () {
 		return userName;
 	}
 	
-	public String getPassword () {
-		return password;
+	public String getHash () {
+		return hash;
+	}
+	
+	public Key getKey () {
+		return publicKey;
 	}
 	
 	public void inboxAdd (Mail mail) {
